@@ -709,6 +709,9 @@ def receive():
                 support, jeu = data
                 print(support, jeu)
                 fen.updateGame(jeu, support)
+	    else:
+		try: fen.addconsole(str(data))
+		except:pass
             #print(data.decode('utf-8'))
     sys.Exit()
 try:
