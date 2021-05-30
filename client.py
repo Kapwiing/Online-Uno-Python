@@ -359,8 +359,8 @@ def page_signup():
     hide_show2.place(x = 757, y = 500)
     
     #Création du bouton permettant de valider ses entrées
-    validate = Button(ecran_signup,command = lambda:valider(identifiant.get(), mdp1.get(), mdp2.get()), image = img[7], borderwidth = 0)
-    validate.place(x = 415, y = 415, width = 150, height = 75)
+    valider = Button(ecran_signup,command = lambda:valider_signup(identifiant.get(), mdp1.get(), mdp2.get()), image = img[7], borderwidth = 0)
+    valider.place(x = 415, y = 415, width = 150, height = 75)
     return ecran_signup
  
 def show(tab, bouton):
@@ -410,7 +410,7 @@ def valider_connection(identifiant, mdp):
     pseudo = identifiant
     Psend(("signin",identifiant,mdp))
 
-def valider(identifiant, mdp1, mdp2):
+def valider_signup(identifiant, mdp1, mdp2):
     """S'assure que les conditions de créations de compte sont vérifiées
     Envoie au serveur une requête de création de compte"""
     global pseudo
@@ -457,7 +457,7 @@ def connection_process(data):
         info = messagebox.showinfo(master = fen.root, title = "Connecté", message = f"Votre compte a bien été créé {pseudo}. \n Veuillez maintenant vous connecter.")
         sortir_accueil()
     
-def validai(saisie:str):
+def valider_saisie(saisie:str):
     global _saisie
     if saisie == "endconn":
         fen.root.destroy()
@@ -479,7 +479,7 @@ def console_view(app):
     _saisie.place(x = 20, y = 480, height = 40, width = 300)
     
     #Buton Validai
-    validai = Button(canva, command = lambda:validai(saisie.get()), bg = "#16fa52", text="Valider", borderwidth = 2)
+    validai = Button(canva, command = lambda:valider_sasie(saisie.get()), bg = "#16fa52", text="Valider", borderwidth = 2)
     validai.place(x = 20, y = 540, height = 160, width = 300)
     
     return canva
