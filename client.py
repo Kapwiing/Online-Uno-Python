@@ -479,7 +479,7 @@ def console_view(app):
     _saisie.place(x = 20, y = 480, height = 40, width = 300)
     
     #Buton Validai
-    validai = Button(canva, command = lambda:valider(saisie.get()), bg = "#16fa52", text="Valider", borderwidth = 2)
+    validai = Button(canva, command = lambda:validai(saisie.get()), bg = "#16fa52", text="Valider", borderwidth = 2)
     validai.place(x = 20, y = 540, height = 160, width = 300)
     
     return canva
