@@ -31,6 +31,7 @@ class ConnectionCanvas:
         self.load_images(fen)
         self = tk.Canvas(self.root,height=720, width=1280)
         ButtonTransition = tk.Button(self,image = self.img[0], width=1278, height = 718, command = self.page_signin, borderwidth = 0).place(x=0, y=0)
+        self.pack()
         
     def load_images(self):
         """Charge les images de la partie de connection dès le début
@@ -210,7 +211,20 @@ class ConnectionCanvas:
             self.str_nbjoueurs = self.create_text((750, 250), text = str(self.nbjoueurs), font = "Bahnschrift 50 bold")   
         
 
-
+"""
+img = ["0 : Image sur le bouton, image d'accueil",
+       "1 : Fond de la page de connection",
+       "2 : Fond de la page de création de compte",
+       "3 : Show password",
+       "4 : Hide password",
+       "5 : Bouton valider de la page login",
+       "6 : Bouton permettant d'acceder à la page d'inscription",
+       "7 : Bouton valider de la page de création de compte",
+       "8 : Image de l'acceuil quand le joueur est connecté",
+       "9 : Bouton pour rejoindre une partie",
+       "10 : Bouton pour créer une partie",
+       "11 : Fond du compteur pour le nombre de joueurs"]
+"""
 
 
 
