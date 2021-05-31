@@ -7,9 +7,9 @@
 
 
 import tkinter as tk
-from PIL import Image, ImageTk
+from PIL import ImageTk
 from cryptography.fernet import Fernet
-from client import Psend
+import time
 
 
 #########################################################
@@ -28,10 +28,11 @@ class ConnectionCanvas:
     
     def __init__(self, fen):
         self.fen = fen
-        self.load_images(fen)
-        self = tk.Canvas(self.root,height=720, width=1280)
-        ButtonTransition = tk.Button(self,image = self.img[0], width=1278, height = 718, command = self.page_signin, borderwidth = 0).place(x=0, y=0)
-        self.pack()
+        self.c = tk.Canvas(self.fen.root,height=720, width=1280)
+        self.load_images()
+        time.sleep(1)
+        ButtonTransition = tk.Button(self.c,image = self.img[0], width=1278, height = 718, command = self.page_signin, borderwidth = 0).place(x=0, y=0)
+        self.c.pack()
         
     def load_images(self):
         """Charge les images de la partie de connection dès le début
@@ -50,7 +51,7 @@ class ConnectionCanvas:
         self.img.append(ImageTk.PhotoImage(master = self.fen.root, file = dossier + "bouton_rejoindre.png"))
         self.img.append(ImageTk.PhotoImage(master = self.fen.root, file = dossier + "bouton_creer.png"))
         self.img.append(ImageTk.PhotoImage(master = self.fen.root, file = dossier + "compteur_bg.png"))
-
+        
     def page_signin(self):
         """Transforme le canvas en celui de la page de connection"""
         
@@ -79,9 +80,9 @@ class ConnectionCanvas:
         validate.place(x = 565, y = 605, width = 150, height = 75)
         
         #Remplacemlent du canvas affiché
-        self.destroy()
-        self = self.next
-        self.pack()
+        self.c.destroy()
+        self.c = self.next
+        self.c.pack()
 
     def page_signup(self):
         """Renvoie le  canvas correspondant à la page de création de compte"""
@@ -108,9 +109,9 @@ class ConnectionCanvas:
         valider.place(x = 415, y = 415, width = 150, height = 75)
         
         #Remplacement du canvas affiché
-        self.destroy()
+        self.c.destroy()
         self = self.next
-        self.pack()
+        self.c.pack()
 
     def show(self, tab, bouton):
         """tab = list() de tkinter entry à modifier
@@ -136,7 +137,7 @@ class ConnectionCanvas:
         #Prépare le message à envoyer au serveur pour la connection
         mdp = f.encrypt(f"{mdp}".encode())
         self.pseudo = identifiant
-        Psend("signin",identifiant,mdp)
+        Psend(("signin",identifiant,mdp))
     
     def requete_signup(self, identifiant, mdp1, mdp2):
         """S'assure que les conditions de créations de compte sont vérifiées
@@ -174,9 +175,9 @@ class ConnectionCanvas:
         self.creer.place(x = 500, y = 300, width = 500, height = 150)
       
         #Remplace le canvas par celui de création d'une partie
-        self.destroy()
-        self = self.next
-        self.pack()
+        self.c.destroy()
+        self.c = self.next
+        self.c.pack()
 
     def page_creation(self):
         """Renvoie le  canvas correspondant à la page de création de partie"""
@@ -186,11 +187,11 @@ class ConnectionCanvas:
         
         self.nb_joueurs = 2
         
-        self.create_image(750, 250, image = self.img[11])
-        self.str_nbjoueurs = self.create_text((750, 250), text = str(self.nbjoueurs), font = "Bahnschrift 50 bold")
+        self.c.create_image(750, 250, image = self.img[11])
+        self.str_nbjoueurs = self.c.create_text((750, 250), text = str(self.nbjoueurs), font = "Bahnschrift 50 bold")
         
-        bp = tk.Button(self, command = self.plus, text = "+", borderwidth = 0)
-        bm = tk.Button(self, command = self.moins, text = "-", borderwidth = 0)
+        bp = tk.Button(self.c, command = self.plus, text = "+", borderwidth = 0)
+        bm = tk.Button(self.c, command = self.moins, text = "-", borderwidth = 0)
         bp.place(x = 650, y = 225, width = 50, height = 50)
         bm.place(x = 800, y = 225, width = 50, height = 50)
         
@@ -200,7 +201,7 @@ class ConnectionCanvas:
         if self.nbjoueurs < 4:
             self.nbjoueurs += 1
             self.str_nbjoueurs.destroy()
-            self.str_nbjoueurs = self.create_text((750, 250), text = str(self.nbjoueurs), font = "Bahnschrift 50 bold")
+            self.str_nbjoueurs = self.c.create_text((750, 250), text = str(self.nbjoueurs), font = "Bahnschrift 50 bold")
             
     def moins(self):  
         """Retire 1 au nombre de joueurs de la partie
@@ -208,7 +209,7 @@ class ConnectionCanvas:
         if self.nbjoueurs > 2:
             self.nbjoueurs -= 1
             self.str_nbjoueurs.destroy()
-            self.str_nbjoueurs = self.create_text((750, 250), text = str(self.nbjoueurs), font = "Bahnschrift 50 bold")   
+            self.str_nbjoueurs = self.c.create_text((750, 250), text = str(self.nbjoueurs), font = "Bahnschrift 50 bold")   
         
 
 """
@@ -227,7 +228,7 @@ img = ["0 : Image sur le bouton, image d'accueil",
 """
 
 
-
+from bouggito_client import Psend
 
 
 
