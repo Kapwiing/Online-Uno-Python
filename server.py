@@ -256,6 +256,7 @@ class Player:
     self.jeu = Jeu()
     self.pseudo = pseudo
     self.ip = co
+    self.inGame = False
     
   def __str__(self):
     return str(self.pseudo) + ":" + str(self.ip[0])
@@ -296,7 +297,12 @@ class PlayerList:
 
   def members(self):
     return len(self.liste)
-      
+
+  def getplayer(self, ip):
+    for e in self.liste:
+      if ip == e.ip:
+        return e
+    
 class Game:
   def __init__(self, nb_players, code):
     self.pioche = Pile()     #Pioche du jeu
@@ -309,7 +315,7 @@ class Game:
     self.ongoing = False     #Indique si la partie a commencé ou pas
 
   def startgame(self):
-    print("#312 c'est parti pour la rigolade")
+
     self.ongoing = True      #Indique que la partie a commencé
     
     #On place le n° du prochain joueur dans self.joueurs[0]
@@ -347,15 +353,15 @@ class Game:
     global played
     
     played, ok = False, False
-    print("#350")	
+
 		#Chaque joueur reçoit son jeu
 		#A modifier plus tard pour le nb de cartes des autres joueurs et tout
     for joueur in self.joueurs[1:]:
-        opponents = set()
+        opponents = tuple()
         for opponent in self.joueurs[1:]:
-            if not joueur.pseudo == opponent.pseudo:
-                print("#357o zebi un  méchan")
-                opponents.add(opponent.jeu.nb_cartes())
+            if not joueur.ip == opponent.ip:
+
+                opponents = opponents + (opponent.jeu.nb_cartes(),)
         Psend(connList[joueur.ip],(self.support, joueur.jeu, opponents))
 
     sendBroadcast(self, f"C'est le tour de {self.joueurs[self.joueurs[0]].pseudo}")
@@ -408,6 +414,7 @@ class Game:
     """Check des effets eventuels de la carte posée qui devient support"""
     global _new_colour
     global connList
+    global askingColor
     
     if self.support.malus:
       if self.support.passer_tour():
@@ -437,19 +444,32 @@ class Game:
 
         sendBroadcast(self, f"{self.joueurs[decideur].pseudo} doit décider de la couleur de la carte.")
 
-        player = self.joueurs[self.joueurs[0]]
-        Psend(connList[player.ip],"Merci de choisir la couleur de la carte \n")
+        player = self.joueurs[decideur]
+        Psend(connList[player.ip],"cheeseColor")
         
         _new_colour = None
-
+        askingColor = True
+        
         #Pour le cas où la carte est un joker
         while _new_colour is None:
             time.sleep(1)
         
-        assert _new_colour in ["bleu","jaune","vert","rouge"]
+        while askingColor:
+            if _new_colour is not None:
+                
+                for joueur in self.joueurs[1:]:
+                    opponents = tuple()
+                    
+                    for opponent in self.joueurs[1:]:
+                        if not joueur.ip == opponent.ip:
+                            opponents = opponents + (opponent.jeu.nb_cartes(),)
+                            
+                    Psend(connList[joueur.ip],(self.support, joueur.jeu, opponents))
+                    
+                askingColor = False       
           
-        sendBroadcast(self, f"La nouvelle couleur est : {_new_coulour}.\n")
-        self.support.change_couleur(_new_coulour)
+        sendBroadcast(self, f"La nouvelle couleur est : {_new_colour}.\n")
+        self.support.change_couleur(_new_colour)
           
         _new_colour = None
         
@@ -494,14 +514,13 @@ class Game:
 
   def isReady(self):
     if not self.ongoing:
-        print("#494" + str(self.lobby.members()) + str(self.nb_players))
         return self.lobby.members() == self.nb_players
     return False
 
   def announcePlayers(self):
       sendBroadcast(self, f"{self.lobby.members()} joueurs sur {self.nb_players} pour le début de la partie" )
 
-class GameList():
+class GameList:
     def __init__(self):
         self.liste = list()
         
@@ -520,9 +539,14 @@ class GameList():
         return False
     
     def rejoindre(self, player, code):
+        global connList
+        
         for game in self.liste:
             if game.code == code:
-                game.lobby.add(player)
+                if game.ongoing:
+                    Psend(connList[player.ip], "JoinGame Error")
+                else:
+                    game.lobby.add(player)
                 
     def __str__(self):
         var = ""
@@ -534,6 +558,7 @@ class GameList():
         for game in self.liste:
             if game.code == code:  
                 return game
+        
     
 ##############################
 # Fonction(s) en lien au jeu #
@@ -559,9 +584,8 @@ def creation_cartes() -> list:
   
   return pile_cartes
 
-def create_game(connection, ip, msg : tuple) -> None:
+def create_game(connection, player, msg : tuple) -> None:
     global gamelist
-    global players
     
     request, nb, code = msg
 
@@ -569,26 +593,27 @@ def create_game(connection, ip, msg : tuple) -> None:
         
         gamelist.add(nb, code)
         time.sleep(0.5)
-        gamelist.rejoindre(Player(ip, players[ip]), code)
+        gamelist.rejoindre(player, code)
         Psend(connection, "waiting")
         time.sleep(0.5)
         gamelist[code].announcePlayers()
-                    
+        player.onGame = code
+        
     else: Psend(connection, "CreateGame Error")
 
-def joingame(connection, ip, msg : tuple) -> None:
+def joingame(connection, player, msg : tuple) -> None:
     global gamelist
-    global players
     
     request, code = msg
                 
     if gamelist.exists(code):
-
-        gamelist.rejoindre(Player(ip, players[ip]), code)
+        
+        gamelist.rejoindre(player, code)
         Psend(connection, "waiting")
         time.sleep(0.5)
         gamelist[code].announcePlayers()
-                    
+        player.onGame = code        
+            
     else: Psend(connection, "JoinGame Error")
     
     
@@ -664,13 +689,13 @@ def Psend(c,msg):
 #  /  !  \  NE SURTOUT PAS RENOMMER LA FONCTION CI DESSOUS  /  !  \
 # /   !   \      CELA DÉTRUIRAIT L'ESPACE TEMPS MARTY!!    /   !   \
 
-def clbonjueur(connection):
+def clbonjueur(connection, player):
     """Fonction qui renvoie True si la personne qui vient de jouer
     est bien la personne don c'est le tour"""
-    global connList
-    global t
+    global connList, gamelist
     
-    lbonjueur = t.joueurs[t.joueurs[0]]
+    cur_game = gamelist[player.onGame]
+    lbonjueur = cur_game.joueurs[cur_game.joueurs[0]]
     return connection == connList[lbonjueur.ip]
 
 #   / ! \                                                    / ! \
@@ -685,6 +710,7 @@ def threaded(connection, ip):
     global played
     global _new_colour
     global gamelist
+    global askingColor
     
     #On attribue un pseudo pour chaque joueur
     players.add(Player(ip,"Guest"+str(ip[1])))
@@ -699,14 +725,12 @@ def threaded(connection, ip):
     Psend(connection,f"Votre pseudo est : {players[ip]}")
     
     print(f"\nLe nombre de clients est maintenant de {clientCount}")
+    cur_player = players.getplayer(ip)
     while runAll:
         try:
-            #print(connection.recv(4096))
+
             msg=pickle.loads(connection.recv(4096))
-            #print("Obj Reçu")
-            #msg=msg.decode('utf-8')
             print(f"Recu : {msg} de {players[ip]}")
-            #connection.sendall(f"Recu : {msg}")
             
             if msg=="endconn" or not msg:
                 #Si le message reçu est "endconn" la connection s'arrette
@@ -729,19 +753,25 @@ def threaded(connection, ip):
                 Psend(connection, "Liste des commandes :\nplList : Affiche la liste des joueurs connectés\nendconn : Ferme la connection\nhelp : Affiche cette liste")
                 
             elif type(msg) is tuple and msg[0] == "creategame":                
-                create_game(connection, ip, msg)
+                create_game(connection, cur_player, msg)
             
             elif type(msg) is tuple and msg[0] == "joingame":
-                joingame(connection, ip, msg)
+                joingame(connection, cur_player, msg)
                 
-            elif type(msg) is str and type(eval(msg)) is int:
+            elif (type(msg) is str and type(eval(msg)) is int) or type(msg) is int:
                 
-                if clbonjueur(connection): played = int(msg)
+                cur_player = players.getplayer(ip)
+                if clbonjueur(connection, cur_player): played = int(msg)
                 
                 else: Psend(connection, "c pas ton tour")
                 
-            elif msg in ["bleu", "vert", "rouge", "jaune"]:
-                _new_colour = msg
+            elif type(msg) is str and (eval(msg) == "rouge" or eval(msg)=="bleu" or eval(msg)=="vert" or eval(msg) =="jaune"):
+                print("#759 bite")
+                if askingColor:
+                    print(f"{msg} est la nouvelle couleur")
+                    msg = msg[1:-1]
+                    _new_colour=msg
+                    askingColor=False
             
             elif type(msg) is tuple and msg[0] in ["signin", "signup"]:
                 signin_signup(connection, ip, msg)
@@ -761,11 +791,11 @@ def handleJeu():
     
     while True:
         for game in gamelist.liste:
-            print(game.isReady())
+
             if game.isReady():
                 sendBroadcast(game, "starting")
                 time.sleep(0.5)
-                game.startgame()
+                start_new_thread(game.startgame,())
                 
             time.sleep(1)#S'agirait de pas casser le serv
             
@@ -792,7 +822,7 @@ def checkForReady():
 
 _new_colour = None            
 start_new_thread(handleJeu,())
-
+askingColor = False
 
 #----Main Run Loop----
 while runAll:

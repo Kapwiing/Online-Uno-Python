@@ -107,9 +107,7 @@ class Carte:
           elif self.numero=="+4":
               return "las_cuartas\\+4.png"
       else:
-          if self.numero is None:
-              return f"las_cuartas\\{self.couleur}_joker.png"
-          return f"las_cuartas\\{self.couleur}_{self.numero}.png"
+          return f"las_cuartas\\{self.couleur}_{str(self.numero)}.png"
 
 class Jeu:
   #Classe d'un jeu de la main d'un joueur
@@ -658,7 +656,7 @@ def game_view(app, support, jeu, opponents):
     
     if len(opponents)== 1:
         displayEnemyHand(app, opponents[0], "top")
-    elif len(opponents) == 2:
+    elif len(opponents) >= 2:
         displayEnemyHand(app, opponents[0], "left")
         displayEnemyHand(app, opponents[1], "right")
         
@@ -699,10 +697,10 @@ def colorChoice_view(app):
     buttonGreen=tk.Button(app, text="Vert", command=lambda:changeColorSend("vert"))
     buttonYellow=tk.Button(app, text="Jaune", command=lambda:changeColorSend("jaune"))
     
-    buttonRed.place(x=5, y=120, height=20, width=90)
-    buttonBlue.place(x=95, y=120, height=20, width=90)
-    buttonGreen.place(x=185, y=120, height=20, width=90)
-    buttonYellow.place(x=275, y=120, height=20, width=90)
+    buttonRed.place(x=105, y=220, height=20, width=90)
+    buttonBlue.place(x=195, y=220, height=20, width=90)
+    buttonGreen.place(x=285, y=220, height=20, width=90)
+    buttonYellow.place(x=375, y=220, height=20, width=90)
 
 
 
@@ -772,7 +770,7 @@ fen = App()
 ###########################################
 
 #91.160.34.220
-ip="localhost"
+ip="91.160.34.220"
 port=55555
 
 
@@ -783,10 +781,8 @@ client.connect((ip,port))
 
 def Psend(msg):
     """Load un objet dans pickle et l'envoie au serveur"""
-    if msg=="testBalls":
-        fen.colorChoice()
-    if msg=="rouge" or msg=="vert" or msg=="jaune" or msg=="bleu":
-        msg=f"\"{msg}\""
+    if type(msg) is str and (msg == "rouge" or msg=="bleu" or msg=="vert" or msg =="jaune"):
+        msg = f"\"{msg}\""
     msg=pickle.dumps(msg)
     #print(msg)
     client.send(msg)
@@ -809,7 +805,7 @@ def receive():
                 
             elif data == "starting" or data == "waiting":
                 go_gameview()
-                
+
             elif type(data)==tuple:
                 
                 if data[0] == "online moment" or data[0] == "registration moment":
