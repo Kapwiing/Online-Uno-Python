@@ -46,7 +46,8 @@ cur = base.cursor()
 #############################################
 
 
-def signin_signup(msg):
+def signin_signup(connection, ip, msg):
+    global players
     #Si le message est une requête de connection
     if msg[0] == "signin":
 
@@ -100,7 +101,7 @@ def signin_signup(msg):
             Psend(connection, "signup entry error")
 
 
-
+###################         On est obligés de les avoir ici
 # Classes de mort #			pour que pickle fonctionne correctement
 ###################
 
@@ -308,11 +309,12 @@ class Game:
     self.ongoing = False     #Indique si la partie a commencé ou pas
 
   def startgame(self):
-      
+    print("#312 c'est parti pour la rigolade")
     self.ongoing = True      #Indique que la partie a commencé
     
     #On place le n° du prochain joueur dans self.joueurs[0]
-    self.joueurs[0] = 1
+    self.joueurs = list()
+    self.joueurs.append(1)
     self.joueurs += self.lobby.liste
     
     #faudra check si l'indice du player dans le tableau = (self.joueurs[0]%(len(self.joueurs)-1))+1
@@ -345,11 +347,16 @@ class Game:
     global played
     
     played, ok = False, False
-			
+    print("#350")	
 		#Chaque joueur reçoit son jeu
 		#A modifier plus tard pour le nb de cartes des autres joueurs et tout
     for joueur in self.joueurs[1:]:
-	    	Psend(connList[joueur.ip],(self.support, joueur.jeu))
+        opponents = set()
+        for opponent in self.joueurs[1:]:
+            if not joueur.pseudo == opponent.pseudo:
+                print("#357o zebi un  méchan")
+                opponents.add(opponent.jeu.nb_cartes())
+        Psend(connList[joueur.ip],(self.support, joueur.jeu, opponents))
 
     sendBroadcast(self, f"C'est le tour de {self.joueurs[self.joueurs[0]].pseudo}")
 			
@@ -487,7 +494,8 @@ class Game:
 
   def isReady(self):
     if not self.ongoing:
-        return self.lobby.members == self.nb_players
+        print("#494" + str(self.lobby.members()) + str(self.nb_players))
+        return self.lobby.members() == self.nb_players
     return False
 
   def announcePlayers(self):
@@ -495,7 +503,7 @@ class Game:
 
 class GameList():
     def __init__(self):
-        self.liste = []
+        self.liste = list()
         
     def add(self, nb, code):
         self.liste.append(Game(nb, code))
@@ -551,8 +559,9 @@ def creation_cartes() -> list:
   
   return pile_cartes
 
-def create_game(msg : tuple) -> None:
+def create_game(connection, ip, msg : tuple) -> None:
     global gamelist
+    global players
     
     request, nb, code = msg
 
@@ -567,14 +576,15 @@ def create_game(msg : tuple) -> None:
                     
     else: Psend(connection, "CreateGame Error")
 
-def joingame(msg : tuple) -> None:
+def joingame(connection, ip, msg : tuple) -> None:
     global gamelist
+    global players
     
     request, code = msg
                 
     if gamelist.exists(code):
-        
-        gamelist.join(Player(ip, players[ip]), code)
+
+        gamelist.rejoindre(Player(ip, players[ip]), code)
         Psend(connection, "waiting")
         time.sleep(0.5)
         gamelist[code].announcePlayers()
@@ -719,10 +729,10 @@ def threaded(connection, ip):
                 Psend(connection, "Liste des commandes :\nplList : Affiche la liste des joueurs connectés\nendconn : Ferme la connection\nhelp : Affiche cette liste")
                 
             elif type(msg) is tuple and msg[0] == "creategame":                
-                create_game(msg)
+                create_game(connection, ip, msg)
             
             elif type(msg) is tuple and msg[0] == "joingame":
-                joingame(msg)
+                joingame(connection, ip, msg)
                 
             elif type(msg) is str and type(eval(msg)) is int:
                 
@@ -734,7 +744,7 @@ def threaded(connection, ip):
                 _new_colour = msg
             
             elif type(msg) is tuple and msg[0] in ["signin", "signup"]:
-                signin_signup(msg)
+                signin_signup(connection, ip, msg)
                 
             else:
                 Psend(connection,f"Unkown command \"{msg}\" ")
@@ -747,12 +757,11 @@ def threaded(connection, ip):
 #NB : Il est important de déclarer les variables en global afin d'avoir un droit
 #de modification dessus et pas seulement de lecture
 def handleJeu():
-    global t
     global gamelist
     
-    oka=True
-    while oka:
+    while True:
         for game in gamelist.liste:
+            print(game.isReady())
             if game.isReady():
                 sendBroadcast(game, "starting")
                 time.sleep(0.5)
@@ -782,7 +791,6 @@ def checkForReady():
             okb=False
 
 _new_colour = None            
-t = "haaaaaaaaaaaaaan"
 start_new_thread(handleJeu,())
 
 

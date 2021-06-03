@@ -511,7 +511,10 @@ def console_view(app):
 def go_gameview():
     global menu
     
-    menu.kill()
+    try: 
+        menu.kill()
+    except: 
+        menu.destroy()
     
     menu = console_view(fen.root)
     menu.pack(side=tk.RIGHT)
@@ -586,19 +589,36 @@ def readSupport(fen,carte):
     l.image=fen.imgReal
     l.place(x=378, y=217)
 
-def displayEnemyHand(fen, num):
+def displayEnemyHand(fen, num, side):
     """Fonction qui affiche le nombre num de cartes de l'adversaire dans le canvas fen"""
-    if num is None or num ==0:
+    if num is None or num == 0:
         return
+    
     imgName="las_cuartas\\uno_back.png"
-    for v in range(num):
-        tmp=Image.open(imgName).resize((61,95))
-        fen.imgReal=ImageTk.PhotoImage(tmp)
-        
-        e=tk.Label(fen, image=fen.imgReal)
-        e.image=fen.imgReal
-        
-        e.place(x=(v*61)+20, y=10)
+    
+    if side == "left":
+        xvalue = 10
+    elif side == "right":
+        xvalue = 869
+    
+    if side in ["left", "right"]:
+        for v in range(num):
+            tmp=Image.open(imgName).resize((61,95))
+            fen.imgReal=ImageTk.PhotoImage(tmp)
+            
+            e=tk.Label(fen, image=fen.imgReal)
+            e.image=fen.imgReal
+            
+            e.place(x= xvalue, y= 30 + (v*50))
+    else:      
+        for v in range(num):
+            tmp=Image.open(imgName).resize((61,95))
+            fen.imgReal=ImageTk.PhotoImage(tmp)
+            
+            e=tk.Label(fen, image=fen.imgReal)
+            e.image=fen.imgReal
+            
+            e.place(x=(v*61)+20, y=10)
     
 def readGameCanva(fen, hand):
     """Fonction de lecture du jeu (argument hand) et affichage dynamique en Tkinter
@@ -623,7 +643,7 @@ def readGameCanva(fen, hand):
         
         v+=1
 
-def game_view(app, handToDisplay, cardToDisplay, enemyNumToDisplay):
+def game_view(app, support, jeu, opponents):
     global gameCanva
     
     try:
@@ -633,9 +653,18 @@ def game_view(app, handToDisplay, cardToDisplay, enemyNumToDisplay):
     
     gameCanva=tk.Canvas(app, heigh=720, width = 940, bg ="#EBFCFF", bd=0, highlightthickness=0, relief='ridge') # Création du Canvas de jeu auquel en enlève la Bordure par défaut avec "bd=0,highlightthickness=0,relief='ridge'"
     
-    readGameCanva(gameCanva,handToDisplay)
-    readSupport(gameCanva, cardToDisplay)
-    displayEnemyHand(app, enemyNumToDisplay)
+    readGameCanva(gameCanva, jeu)
+    readSupport(gameCanva, support)
+    
+    if len(opponents)== 1:
+        displayEnemyHand(app, opponents[0], "top")
+    elif len(opponents) == 2:
+        displayEnemyHand(app, opponents[0], "left")
+        displayEnemyHand(app, opponents[1], "right")
+        
+        if len(opponents) == 3:
+            displayEnemyHand(app, opponents[2], "top") 
+    
     
     displayPioche(app)
     
@@ -714,9 +743,9 @@ class App(threading.Thread):
         global console
         console.insert(tk.END, txt + "\n")
         
-    def updateGame(self, newGame, newCard, newEnemyNum):
+    def updateGame(self, support, jeu, opponents):
         """Méthode appelée à chaque récéption de Jeu/Carte/Nombre de Cartes de l'adversaire"""
-        self.jeuTkinter = game_view(self.root,newGame, newCard, newEnemyNum)
+        self.jeuTkinter = game_view(self.root, support, jeu, opponents)
 
         self.jeuTkinter.pack(side=tk.LEFT)
         self.jeuTkinter.update()
@@ -783,13 +812,12 @@ def receive():
                 
             elif type(data)==tuple:
                 
-                if data[0] == "online moment":
-                    e, menu.wins, menu.parties, menu.elo = data
-                    menu.page_accueil()
+                if data[0] == "online moment" or data[0] == "registration moment":
+                    connection_process(data)
                     
                 else:
-                    recvCard, recvDeck,recvOtherNum = data
-                    fen.updateGame(recvDeck, recvCard, recvOtherNum)
+                    support, jeu, opponents = data
+                    fen.updateGame(support, jeu, opponents)
                                 
             elif data and type(data)!=tuple:
                 if str(data)=="cheeseColor":
