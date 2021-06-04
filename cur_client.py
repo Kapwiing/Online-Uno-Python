@@ -14,11 +14,13 @@ import pickle
 import threading
 import time
 from _thread import *
-import tkinter as tk
 from PIL import Image, ImageTk
 from cryptography.fernet import Fernet
 
-
+try :
+    import tkinter as tk
+except:
+    raise FloatingPointError("Merci d'utiliser python3 ou +")
 
 #########################################################
 #####     Système de cryptage des mots de passe     #####
@@ -103,11 +105,11 @@ class Carte:
       
       if self.couleur is None:
           if self.numero is None:
-              return "las_cuartas\\joker.png"               
+              return "Images\\las_cuartas\\joker.png"               
           elif self.numero=="+4":
-              return "las_cuartas\\+4.png"
+              return "Images\\las_cuartas\\+4.png"
       else:
-          return f"las_cuartas\\{self.couleur}_{str(self.numero)}.png"
+          return f"Images\\las_cuartas\\{self.couleur}_{str(self.numero)}.png"
 
 class Jeu:
   #Classe d'un jeu de la main d'un joueur
@@ -230,9 +232,6 @@ class PlayerList:
       if n == e.nb:
         return e.pseudo
 
-testJeu=Jeu()
-testCard=Carte(0,"bleu")
-
 
 
 #######################################
@@ -242,7 +241,7 @@ testCard=Carte(0,"bleu")
 
 
 connected = False
-console, _saisie = None, None
+console, _saisie, waiting = None, None, None
 
 class ConnectionCanvas:
     
@@ -260,7 +259,7 @@ class ConnectionCanvas:
         """Charge les images de la partie de connection dès le début
            afin de rendre la suite plus fluide"""
         self.img = []
-        dossier = "Images connection/"
+        dossier = "Images\\Images connection\\"
         self.img.append(ImageTk.PhotoImage(master = self.fen.root, file = dossier + "uno_wallpaper.png"))
         self.img.append(ImageTk.PhotoImage(master = self.fen.root, file = dossier + "uno_login_page.png"))
         self.img.append(ImageTk.PhotoImage(master = self.fen.root, file = dossier + "uno_signup_page.png"))
@@ -472,6 +471,7 @@ def creation_fenetre(fenetre):
     #On bloque la taille en 500x500
     fenetre.resizable(width=False, height=False)
     fenetre.title("Amoguno")
+    fenetre["bg"] = "#EBFCFF"
 
 def valider(saisie:str):
     global  _saisie
@@ -506,14 +506,31 @@ def console_view(app):
     
     return canva
 
-def go_gameview():
+def go_gameview(msg):
     global menu
+    global gameCanva
+    global waiting
     
-    try: 
-        menu.kill()
-    except: 
-        menu.destroy()
+    try: menu.kill()
+    except: menu.destroy()
+        
+    try: gameCanva.destroy()
+    except: pass
     
+    if msg == "waiting":
+        
+        waitImg = Image.open("Images\\waiting.png")
+
+        fen.imgReal=ImageTk.PhotoImage(waitImg)
+            
+        waiting=tk.Label(fen.root, image=fen.imgReal)
+        waiting.image=fen.imgReal
+            
+        waiting.place(x= 0, y= 0)
+    
+    elif msg == "starting":
+        waiting.destroy()
+        
     menu = console_view(fen.root)
     menu.pack(side=tk.RIGHT)
 
@@ -592,7 +609,7 @@ def displayEnemyHand(fen, num, side):
     if num is None or num == 0:
         return
     
-    imgName="las_cuartas\\uno_back.png"
+    imgName="Images\\las_cuartas\\uno_back.png"
     
     if side == "left":
         xvalue = 10
@@ -607,7 +624,7 @@ def displayEnemyHand(fen, num, side):
             e=tk.Label(fen, image=fen.imgReal)
             e.image=fen.imgReal
             
-            e.place(x= xvalue, y= 30 + (v*50))
+            e.place(x= xvalue, y= 100 + (v*20))
     else:      
         for v in range(num):
             tmp=Image.open(imgName).resize((61,95))
@@ -644,15 +661,19 @@ def readGameCanva(fen, hand):
 def game_view(app, support, jeu, opponents):
     global gameCanva
     
+
+    
+    tmpgameCanva=tk.Canvas(app, heigh=720, width = 940, bg ="#EBFCFF", bd=0, highlightthickness=0, relief='ridge') # Création du Canvas de jeu auquel en enlève la Bordure par défaut avec "bd=0,highlightthickness=0,relief='ridge'"
+    
+    readGameCanva(tmpgameCanva, jeu)
+    readSupport(tmpgameCanva, support)
+   
     try:
         gameCanva.destroy()
     except:
         pass
     
-    gameCanva=tk.Canvas(app, heigh=720, width = 940, bg ="#EBFCFF", bd=0, highlightthickness=0, relief='ridge') # Création du Canvas de jeu auquel en enlève la Bordure par défaut avec "bd=0,highlightthickness=0,relief='ridge'"
     
-    readGameCanva(gameCanva, jeu)
-    readSupport(gameCanva, support)
     
     if len(opponents)== 1:
         displayEnemyHand(app, opponents[0], "top")
@@ -662,11 +683,10 @@ def game_view(app, support, jeu, opponents):
         
         if len(opponents) == 3:
             displayEnemyHand(app, opponents[2], "top") 
-    
-    
+        
     displayPioche(app)
     
-    
+    gameCanva = tmpgameCanva
     gameCanva.update_idletasks()
     
     return gameCanva
@@ -739,7 +759,9 @@ class App(threading.Thread):
     def addconsole(self, txt : str):
         """Méthode qui ajoute la console à la fenêtre"""
         global console
+        
         console.insert(tk.END, txt + "\n")
+        console.see(tk.END)
         
     def updateGame(self, support, jeu, opponents):
         """Méthode appelée à chaque récéption de Jeu/Carte/Nombre de Cartes de l'adversaire"""
@@ -770,7 +792,7 @@ fen = App()
 ###########################################
 
 #91.160.34.220
-ip="91.160.34.220"
+ip="localhost"
 port=55555
 
 
@@ -804,7 +826,7 @@ def receive():
                 error_process(data)
                 
             elif data == "starting" or data == "waiting":
-                go_gameview()
+                go_gameview(data)
 
             elif type(data)==tuple:
                 
@@ -819,9 +841,10 @@ def receive():
                 if str(data)=="cheeseColor":
                     fen.colorChoice()
                     
-                try:
-                    fen.addconsole(str(data))
-                except:pass
+                else:                        
+                    try:
+                        fen.addconsole(str(data))
+                    except:pass
                 #print(data.decode('utf-8'))
     sys.Exit()
     

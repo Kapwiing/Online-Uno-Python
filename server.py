@@ -492,6 +492,10 @@ class Game:
         self.joueurs[0] = len(self.joueurs) -1
 
   def is_Winner(self):
+    if len(self.joueurs) == 2:
+        sendBroadcast(self, f"Victoire par forfait de {self.joueurs[1].pseudo}")
+        return True
+    
     for nb in range(len(self.joueurs)-1):
       if self.joueurs[nb+1].jeu.est_vide():
         sendBroadcast(self, f"Félicitations, {self.joueurs[nb+1].pseudo} a gagné. \n")
@@ -547,7 +551,11 @@ class GameList:
                     Psend(connList[player.ip], "JoinGame Error")
                 else:
                     game.lobby.add(player)
-                
+    
+    def quitagme(self, player, code):
+        self[code].lobby.remove(player.ip)
+        self[code].joueurs.remove(player)        
+    
     def __str__(self):
         var = ""
         for game in self.liste:
@@ -739,6 +747,8 @@ def threaded(connection, ip):
                 Psend(connection,"Fermeture de la connection")
                 players.remove(ip)
                 clientCount-=1
+                if cur_player.inGame:
+                    gamelist.quitgame(cur_player, cur_player.inGame)
                 print(f"Nombre de clients : {clientCount}\n")
                 
                 connection.close()
@@ -766,7 +776,6 @@ def threaded(connection, ip):
                 else: Psend(connection, "c pas ton tour")
                 
             elif type(msg) is str and (eval(msg) == "rouge" or eval(msg)=="bleu" or eval(msg)=="vert" or eval(msg) =="jaune"):
-                print("#759 bite")
                 if askingColor:
                     print(f"{msg} est la nouvelle couleur")
                     msg = msg[1:-1]
