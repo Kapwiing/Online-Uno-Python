@@ -166,13 +166,13 @@ class Carte:
   def fichierimg(self):
     if self.couleur is None:
         if self.numero is None:
-            return "las_cuartas\\joker.png"               
+            return "Images\\las_cuartas\\joker.png"               
         else:
-            return "las_cuartas\\+4.png"
+            return "Images\\las_cuartas\\+4.png"
     else:
         if self.numero in None:
-            return f"las_cuartas\\{self.couleur}_joker.png"
-        return f"las_cuartas\\{self.couleur}_{self.numero}.png"
+            return f"Images\\las_cuartas\\{self.couleur}_joker.png"
+        return f"Images\\las_cuartas\\{self.couleur}_{self.numero}.png"
 
 class Jeu:
   #Classe d'un jeu de la main d'un joueur
@@ -260,7 +260,32 @@ class Player:
     
   def __str__(self):
     return str(self.pseudo) + ":" + str(self.ip[0])
+  
+  def addGame(self):
+    #On récupère le nombre actuel de parties
+    cur.execute("SELECT Parties FROM Joueurs WHERE Pseudo = ?", (self.pseudo,))
+    nb_parties = cur.fetchall()[0][0]
 
+    cur.execute("UPDATE Joueurs SET Parties = ? WHERE Pseudo = ?", (nb_parties+1, self.pseudo))
+    base.commit()
+
+  def updateElo(self, win = False):
+    change = random.randint(5, 25)
+    if not win: change = -change
+
+    cur.execute("SELECT Elo FROM Joueurs WHERE Pseudo = ?", (self.pseudo,))
+    elo = cur.fetchall()[0][0]
+
+    cur.execute("UPDATE Joueurs SET Elo = ? WHERE Pseudo = ?", (elo+change, self.pseudo))
+    base.commit()
+
+  def addWin(self):
+    cur.execute("SELECT Wins FROM Joueurs WHERE Pseudo = ?", (self.pseudo,))
+    wins = cur.fetchall()[0][0]
+    
+    cur.execute("UPDATE Joueurs SET Wins = ? WHERE Pseudo = ?", (wins+1, self.pseudo))
+    base.commit()   
+    
 class PlayerList:
   def __init__(self):
     self.liste = list()
@@ -325,8 +350,10 @@ class Game:
     
     #faudra check si l'indice du player dans le tableau = (self.joueurs[0]%(len(self.joueurs)-1))+1
     #si oui il peut jouer
-    for k in range(len(self.joueurs)):
-      if k != 0: self.joueurs[k].nb = k
+    for k in range(1, len(self.joueurs)):
+      self.joueurs[k].nb = k
+      self.joueurs[k].addGame()
+      self.joueurs[k].inGame = self.code
 
     #Génère la pioche contenant toutes les cartes du jeu
     self.pioche = creation_cartes()
@@ -494,13 +521,18 @@ class Game:
   def is_Winner(self):
     if len(self.joueurs) == 2:
         sendBroadcast(self, f"Victoire par forfait de {self.joueurs[1].pseudo}")
+        sendBroadcast(self, ("andHisNameIs",{self.joueurs[1].pseudo}))
+        self.joueurs[1].addWin()
+        self.kill()
         return True
     
     for nb in range(len(self.joueurs)-1):
       if self.joueurs[nb+1].jeu.est_vide():
-        sendBroadcast(self, f"Félicitations, {self.joueurs[nb+1].pseudo} a gagné. \n")
+        sendBroadcast(self, ("andHisNameIs",{self.joueurs[nb+1].pseudo}))
         sendBroadcast(self, "La partie est Finie, vous pouvez quitter la Salle de Jeu")
         print(f"Félicitations, le joueur {self.joueurs[nb+1].pseudo} a gagné. \n")
+        self.joueurs[nb].addWin()
+        self.kill()
         return True
 
   def restart(self):
@@ -523,6 +555,12 @@ class Game:
 
   def announcePlayers(self):
       sendBroadcast(self, f"{self.lobby.members()} joueurs sur {self.nb_players} pour le début de la partie" )
+      
+  def kill(self):
+      global gamelist
+
+      gamelist.remove(self.code)
+      self = None
 
 class GameList:
     def __init__(self):
@@ -552,9 +590,13 @@ class GameList:
                 else:
                     game.lobby.add(player)
     
-    def quitagme(self, player, code):
+    def quitgame(self, player, code):
+        print("#594")
         self[code].lobby.remove(player.ip)
-        self[code].joueurs.remove(player)        
+        print("#596")
+        self[code].joueurs.remove(player) 
+        print("#597")
+        self[code].isWinner()
     
     def __str__(self):
         var = ""
@@ -745,10 +787,10 @@ def threaded(connection, ip):
                 
                 print(f'**Déconneté de : {ip}**\n')
                 Psend(connection,"Fermeture de la connection")
-                players.remove(ip)
                 clientCount-=1
-                if cur_player.inGame:
+                if cur_player.inGame is not False:
                     gamelist.quitgame(cur_player, cur_player.inGame)
+                players.remove(ip)
                 print(f"Nombre de clients : {clientCount}\n")
                 
                 connection.close()
@@ -770,7 +812,6 @@ def threaded(connection, ip):
                 
             elif (type(msg) is str and type(eval(msg)) is int) or type(msg) is int:
                 
-                cur_player = players.getplayer(ip)
                 if clbonjueur(connection, cur_player): played = int(msg)
                 
                 else: Psend(connection, "c pas ton tour")
@@ -804,7 +845,7 @@ def handleJeu():
             if game.isReady():
                 sendBroadcast(game, "starting")
                 time.sleep(0.5)
-                start_new_thread(game.startgame,())
+                game.startgame()
                 
             time.sleep(1)#S'agirait de pas casser le serv
             
