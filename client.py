@@ -398,7 +398,7 @@ class ConnectionCanvas:
         fen.imgReal=ImageTk.PhotoImage(Image.open(card.fichierimg()).resize((138,214)))
     
         self.l=tk.Label(fen.root, image = fen.imgReal, bg = "red")
-        self.l.place(x=24, y=470)
+        self.l.place(x=22, y=470)
         
         #Création des bouton pour jouer
         self.code = tk.StringVar(self.fen.root)

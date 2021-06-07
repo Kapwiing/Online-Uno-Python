@@ -14,6 +14,7 @@ import pickle
 import sqlite3
 from _thread import *
 from cryptography.fernet import Fernet
+from multiprocessing.pool import ThreadPool
 import datetime
 
 
@@ -929,7 +930,7 @@ def threaded(connection, ip):
             #Si c'est pour créer une partie
             elif type(msg) is tuple and msg[0] == "creategame":                
                 create_game(connection, cur_player, msg)
-                print("La partie a bel et bien été crée")
+                print("La partie a bel et bien étée crée")
             
             #Si c'est pour envoyer un message dans le chat
             elif type(msg) is tuple and msg[0] == "message":
@@ -977,7 +978,8 @@ def handleJeu():
             if game.isReady():
                 sendBroadcast(game, "starting")
                 time.sleep(0.5)
-                game.startgame()
+                start_new_thread(game.startgame,())
+
                 
             time.sleep(1)#S'agirait de pas casser le serv
             
