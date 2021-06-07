@@ -221,7 +221,7 @@ class Jeu:
   
   def main_vide(self) -> None:
     #Génère la main vide d'un joueur
-    self.main==[]
+    self.main=[]
   
   def est_vide(self) -> bool:
     #Renvoie True la main d'un joueur est vide, False sinon
@@ -289,6 +289,10 @@ class Pile:
     def melanger(self) -> None:
     #Mélange la pile
         random.shuffle(self.valeurs)
+        
+    def renverser(self):
+    #Renverse la pile
+        return self.valeurs.reverse()
 
 class Player:
   def __init__(self, co, pseudo:str):
@@ -310,7 +314,7 @@ class Player:
     base.commit()
 
   def updateElo(self, win = False):
-    change = random.randint(5, 25)
+    change = random.randint(5, 20)
     if not win: change = -change
 
     cur.execute("SELECT Elo FROM Joueurs WHERE Pseudo = ?", (self.pseudo,))
@@ -423,7 +427,12 @@ class Game:
     
         #Initialisation des variables
         played, ok = False, False
-
+        
+        #On s'assure que la pioche ne soit pas vide
+        if self.pioche.pilevide():
+            self.pioche = self.posees.renverser()
+            
+        
 		#Chaque joueur reçoit le support, son jeu et le nb de cartes des adversaires
         for joueur in self.joueurs[1:]:
             opponents = tuple()
@@ -651,6 +660,7 @@ class Game:
         
         for player in self.joueurs[1:]:
             player.inGame = False
+            player.main_vide()
          
         #La sort de la liste des parties
         #La transforme en NoneType
@@ -714,6 +724,7 @@ class GameList:
             if game.code == code:  
                 return game
         
+
     
 ##############################
 # Fonction(s) en lien au jeu #
@@ -812,6 +823,7 @@ connList={} #-Liste- dictionnaire des connexions utilisée pour les broadcasts
 ##############################
 
 
+
 gamelist = GameList()
 
 def askEnd() -> None:
@@ -839,7 +851,6 @@ def Psend(c,msg) -> None:
                 msg = message qui sera pickle.dumps et c.send"""
     c.send(pickle.dumps(msg))
 
-    
 #   / ! \                                                    / ! \
 #  /  !  \  NE SURTOUT PAS RENOMMER LA FONCTION CI DESSOUS  /  !  \
 # /   !   \      CELA DÉTRUIRAIT L'ESPACE TEMPS MARTY!!    /   !   \
@@ -902,28 +913,41 @@ def threaded(connection, ip):
                 break
                 return False
             
+            #Dans le cas d'une requête de la list des joueurs connectés
             elif msg=="plList":
                 Psend(connection,"Voici la liste des joueurs : ")
                 Psend(connection,players)
             
+            #Pour avoir la liste des commandes
             elif msg=="help":
                 Psend(connection, "Liste des commandes :\nplList : Affiche la liste des joueurs connectés\nendconn : Ferme la connection\nhelp : Affiche cette liste")
-                
+            
+            #Si c'est une requête de retour à l'accueil
             elif msg=="BackMenu":
                 Psend(connection, ("newStats",) + getStats(cur_player.pseudo))
             
+            #Si c'est pour créer une partie
             elif type(msg) is tuple and msg[0] == "creategame":                
                 create_game(connection, cur_player, msg)
+                print("La partie a bel et bien été crée")
             
+            #Si c'est pour envoyer un message dans le chat
+            elif type(msg) is tuple and msg[0] == "message":
+                sendBroadcast(gamelist[cur_player.inGame], f"{cur_player.pseudo} : {msg}")
+                
+            #Si c'est pour rejoindre une partie
             elif type(msg) is tuple and msg[0] == "joingame":
                 joingame(connection, cur_player, msg)
-                
+            
+            #Si c'est pour jouer une carte
             elif (type(msg) is str and type(eval(msg)) is int) or type(msg) is int:
                 
+                #On s'assure que c'est le bon joueur qui veut jouer
                 if clbonjueur(connection, cur_player): played = int(msg)
                 
                 else: Psend(connection, "c pas ton tour")
-                
+            
+            #Si c'est pour changer la couleur dans le cas d'un joker ou d'un +4
             elif type(msg) is str and (eval(msg) == "rouge" or eval(msg)=="bleu" or eval(msg)=="vert" or eval(msg) =="jaune"):
                 if askingColor:
                     print(f"{msg} est la nouvelle couleur")
@@ -931,6 +955,7 @@ def threaded(connection, ip):
                     _new_colour=msg
                     askingColor=False
             
+            #Si c'est une requête de connection
             elif type(msg) is tuple and msg[0] in ["signin", "signup"]:
                 signin_signup(connection, ip, msg)
                 

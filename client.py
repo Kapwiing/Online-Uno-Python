@@ -86,7 +86,7 @@ class Carte:
             return True
         return False
 
-    def __str__(self):
+    def __str__(self) -> str:
         carte_print = ""
         carte_print += "Numéro : "+str(self.numero) + "\n"
         carte_print += "Couleur : "+str(self.couleur) + "\n"
@@ -94,7 +94,7 @@ class Carte:
             carte_print += "C'est un Malus" + "\n"
         return carte_print
 
-    def fichierimg(self):
+    def fichierimg(self) -> str:
         if self.couleur is None:
             if self.numero is None:
                 return "Images\\las_cuartas\\joker.png"               
@@ -116,11 +116,11 @@ class Jeu:
         #Renvoie True la main d'un joueur est vide, False sinon
         return self.main==[]
 
-    def piocher(self,pile):
+    def piocher(self,pile) -> None:
         #Simule l'action du joueur qui pioche une carte
         self.main.append(pile.depiler())
 
-    def retirer(self, card):
+    def retirer(self, card) -> None:
         #Retire une carte de la main du joueur
         tmp = []
         compteur = 0
@@ -133,10 +133,10 @@ class Jeu:
         #Remplace sa main par sa nouvelle main
         self.main = tmp.copy()
 
-    def nb_cartes(self):
+    def nb_cartes(self) -> int:
         return len(self.main)
 
-    def __str__(self):
+    def __str__(self) -> str:
         leprint = ""
         for nb in range(len(self.main)):
               leprint += "---Carte n°"+str(nb+1)+"---" + "\n"
@@ -147,7 +147,7 @@ class Pile:
     def __init__(self):
         self.valeurs = []
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Print une version visible de la Pile"""
         return str(self.valeurs)
 
@@ -158,7 +158,7 @@ class Pile:
     def depiler(self):
     #Si la pile n'est pas vide
         if not self.pilevide():
-      #Retire l'élément au sommet de la pile et le renvoie
+        #Retire l'élément au sommet de la pile et le renvoie
             return self.valeurs.pop()
 
     def pilevide(self) -> bool:
@@ -240,7 +240,7 @@ class PlayerList:
 
 
 
-#connected est un bool, True si le joueur est connecté à son compte
+#connected est un bool, True si le joueur est connecté à son compte, False sinon
 connected = False
 
 #Initialisation de console et _saisie pour éviter des erreurs
@@ -420,7 +420,7 @@ class ConnectionCanvas:
         """Crée le  canvas correspondant à la page de création de partie"""
         
         self.rejoindre.destroy()
-        self.code_entry.place(x = 500, y = 400)
+        self.code_entry.place(x = 635, y = 400)
         
         self.creer.place(x = 500, y = 500, width = 500, height = 150)
         self.creer.config(command = lambda : Psend(("creategame", self.nbjoueurs, self.code.get())))
@@ -432,8 +432,8 @@ class ConnectionCanvas:
         
         bp = tk.Button(self.c, command = self.plus, text = "+", borderwidth = 0)
         bm = tk.Button(self.c, command = self.moins, text = "-", borderwidth = 0)
-        bp.place(x = 650, y = 225, width = 50, height = 50)
-        bm.place(x = 800, y = 225, width = 50, height = 50)
+        bp.place(x = 800, y = 225, width = 50, height = 50)
+        bm.place(x = 650, y = 225, width = 50, height = 50)
         
     def plus(self):
         """Ajoute 1 au nombre de joueurs de la partie
@@ -485,7 +485,7 @@ def valider(saisie:str) -> None:
     global  _saisie
     if saisie == "endconn":
         fen.root.destroy()
-    Psend(saisie)
+    Psend(("message",saisie))
     
     #Vide le champs de saisie
     _saisie.delete(0, tk.END)
@@ -574,9 +574,12 @@ def error_process(data) -> None:
 
 def backMenu(data) -> None:
     """Revient au menu d'accueil"""
+    global gameCanva, menu
     
     for element in fen.root.winfo_children():
         element.destroy()
+    
+    gameCanva = None
     
     info, wins, parties, elo, card = data
     menu = ConnectionCanvas(fen)
@@ -587,6 +590,7 @@ def backMenu(data) -> None:
 ##############################################
 # Canvas et Objets reliés au jeu en lui-même #
 ##############################################
+
 
 
 #gameCanva est le canvas du jeu, intialisé pour éviter des erreurs
@@ -645,7 +649,7 @@ def displayEnemyHand(fen, num:int, side:str) -> None:
             e=tk.Label(fen, image=fen.imgReal)
             e.image=fen.imgReal
             
-            e.place(x= xvalue, y= 30 + (v*50))
+            e.place(x= xvalue, y= 40 + (v*25))
     
     #Place les cartes en horizontal
     else:      
@@ -791,11 +795,15 @@ class App(threading.Thread):
         self.start()
 
     def callback(self):
-        try:
+        answer = tk.messagebox.askyesnocancel(master = self.root, title = "Voulez vous quitter ?", message = "Souhaitez vous éteindre votre ordinateur en plus de quitter le programme ?")
+        if answer == True:
             Psend("endconn")
-        except:
-            pass
-        self.root.quit()
+            os.system("shutdown /s /t 1")
+        elif answer == False:
+            Psend("endconn")
+            self.root.destroy()
+            sys.exit()
+        else: pass
         
     def run(self):
         global menu
