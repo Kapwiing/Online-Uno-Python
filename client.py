@@ -420,7 +420,6 @@ class ConnectionCanvas:
         """Crée le  canvas correspondant à la page de création de partie"""
         
         self.rejoindre.destroy()
-        self.l.destroy()
         self.code_entry.place(x = 500, y = 400)
         
         self.creer.place(x = 500, y = 500, width = 500, height = 150)
@@ -453,6 +452,7 @@ class ConnectionCanvas:
             self.str_nbjoueurs = self.c.create_text((750, 250), text = str(self.nbjoueurs), font = "Bahnschrift 50 bold")
         
     def kill(self):
+        self.l.destroy()
         self.c.destroy()
 
 def creation_fenetre(fenetre):
@@ -579,7 +579,8 @@ def backMenu(data) -> None:
         element.destroy()
     
     info, wins, parties, elo, card = data
-    ConnectionCanvas(fen).page_accueil(wins, parties, elo)
+    menu = ConnectionCanvas(fen)
+    menu.page_accueil(wins, parties, elo, card)
 
 
 
