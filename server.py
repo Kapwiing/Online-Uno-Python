@@ -14,8 +14,8 @@ import pickle
 import sqlite3
 from _thread import *
 from cryptography.fernet import Fernet
-from multiprocessing.pool import ThreadPool
 import datetime
+
 
 
 #########################################################
@@ -143,7 +143,7 @@ def dateToCard():
 
 
 ###################         On est obligés de les avoir ici
-# Classes de mort #			pour que pickle fonctionne correctement
+# Classes de mort #         pour que pickle fonctionne correctement
 ###################
 
 
@@ -412,6 +412,7 @@ class Game:
         #Distribue 7 cartes à chacun des joueurs
         for a_distribuer in range(len(self.joueurs)-1):
             self.joueurs[a_distribuer +1].nb = a_distribuer +1
+            self.joueurs[a_distribuer +1].jeu = Jeu()
             for _ in range(7):      
                 self.joueurs[a_distribuer +1].jeu.piocher(self.pioche)
 
@@ -661,7 +662,7 @@ class Game:
         
         for player in self.joueurs[1:]:
             player.inGame = False
-            player.main_vide()
+            player.jeu.main_vide()
          
         #La sort de la liste des parties
         #La transforme en NoneType
@@ -791,7 +792,7 @@ def joingame(connection, player, msg : tuple) -> None:
 
 
 
-ip='localhost'
+ip='192.168.0.33'
 port=55555
 
 #Nombre de clients maximums pour le serveur
