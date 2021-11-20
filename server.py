@@ -4,7 +4,7 @@
 # Import des modules #
 ######################
 
-ip='192.168.0.33'
+ip='127.0.0.1'
 port=55555
 
 import sys
@@ -800,12 +800,9 @@ server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 #server.listen(2)
 print("**Serveur en Démarrage...**\n")
 
-try :
-    server.bind((ip,port))
-    server.listen(desiredClients)
-    print("**Serveur en Ligne !!**\n")
-except ConnectionError() as e:
-    print(e)
+server.bind((ip,port))
+server.listen(desiredClients)
+print("**Serveur en Ligne !!**\n")
 
 players=PlayerList()
 clientCount=0
