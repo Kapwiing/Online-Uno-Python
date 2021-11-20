@@ -4,6 +4,9 @@
 # Import des modules #
 ######################
 
+#91.160.34.220
+ip="localhost"
+port=55555
 
 import random
 import socket
@@ -873,10 +876,6 @@ fen = App()
 ###########################################
 # Gestion de la discussion avec le server #
 ###########################################
-
-#91.160.34.220
-ip="localhost"
-port=55555
 
 
 time.sleep(0.5)

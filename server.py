@@ -4,7 +4,8 @@
 # Import des modules #
 ######################
 
-
+ip='192.168.0.33'
+port=55555
 
 import sys
 import socket
@@ -791,10 +792,6 @@ def joingame(connection, player, msg : tuple) -> None:
 #################################
 
 
-
-ip='192.168.0.33'
-port=55555
-
 #Nombre de clients maximums pour le serveur
 desiredClients=2
 
@@ -853,9 +850,7 @@ def Psend(c,msg) -> None:
                 msg = message qui sera pickle.dumps et c.send"""
     c.send(pickle.dumps(msg))
 
-#   / ! \                                                    / ! \
-#  /  !  \  NE SURTOUT PAS RENOMMER LA FONCTION CI DESSOUS  /  !  \
-# /   !   \      CELA DÉTRUIRAIT L'ESPACE TEMPS MARTY!!    /   !   \
+#NE SURTOUT PAS RENOMMER LA FONCTION CI DESSOUS
 
 def clbonjueur(connection, player) -> bool:
     """Fonction qui renvoie True si la personne qui vient de jouer
@@ -866,9 +861,7 @@ def clbonjueur(connection, player) -> bool:
     lbonjueur = cur_game.joueurs[cur_game.joueurs[0]]
     return connection == connList[lbonjueur.ip]
 
-#   / ! \                                                    / ! \
-#  /  !  \  NE SURTOUT PAS RENOMMER LA FONCTION CI DESSUS   /  !  \
-# /   !   \      CELA DÉTRUIRAIT L'ESPACE TEMPS MARTY!!    /   !   \
+# NE SURTOUT PAS RENOMMER LA FONCTION CI DESSUS
 
 def threaded(connection, ip):
     """THREAD DE LA GESTION DE CLIENTS"""
